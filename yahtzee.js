@@ -98,6 +98,17 @@ class Yatzy {
     }
 
     setupEventListeners() {
+        // Mode option clicks — enforce single selection
+        document.querySelectorAll('.mode-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio) {
+                    document.querySelectorAll('input[name="game-mode"]').forEach(r => r.checked = false);
+                    radio.checked = true;
+                }
+            });
+        });
+
         // Start game from mode screen
         document.getElementById('start-game-btn').addEventListener('click', () => this.startFromModeScreen());
 
