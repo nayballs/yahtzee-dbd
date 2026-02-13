@@ -1,10 +1,11 @@
-const CACHE_NAME = 'yatzy-dbd-v1';
+const CACHE_NAME = 'yatzy-dbd-v2';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
     './yahtzee.js',
     './manifest.json',
+    './icons/icon-180.png',
     './icons/icon-192.png',
     './icons/icon-512.png'
 ];
