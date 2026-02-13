@@ -121,7 +121,11 @@ body::before {
 }
 
 .mode-option input[type="radio"] {
-    display: none;
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
 }
 
 .mode-check {
@@ -200,6 +204,23 @@ header {
     gap: 16px;
     font-size: 13px;
     color: rgba(212, 196, 168, 0.7);
+}
+
+.header-back {
+    background: none;
+    border: 1px solid rgba(139, 0, 0, 0.3);
+    border-radius: 6px;
+    color: rgba(212, 196, 168, 0.6);
+    font-size: 16px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    line-height: 1;
+}
+
+.header-back:active {
+    color: var(--entity-orange);
+    border-color: var(--entity-orange);
 }
 
 .streak { color: var(--entity-orange); font-weight: 600; }

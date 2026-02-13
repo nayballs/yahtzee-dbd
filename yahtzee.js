@@ -139,6 +139,9 @@ class Yatzy {
 
         // Change mode from modal
         document.getElementById('change-mode-btn').addEventListener('click', () => this.showModeScreen());
+
+        // Back to mode select from header
+        document.getElementById('back-to-modes').addEventListener('click', () => this.showModeScreen());
     }
 
     roll() {
