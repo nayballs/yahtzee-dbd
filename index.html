@@ -14,7 +14,55 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="game-container">
+    <!-- Mode Selection Screen -->
+    <div id="mode-screen">
+        <div class="mode-content">
+            <h1 class="mode-title">Yatzy</h1>
+            <p class="mode-subtitle">Dead by Daylight</p>
+
+            <div class="mode-options">
+                <label class="mode-option" data-mode="standard">
+                    <input type="checkbox" id="mode-standard" checked>
+                    <span class="mode-check"></span>
+                    <div class="mode-info">
+                        <span class="mode-name">Standard</span>
+                        <span class="mode-desc">3 rolls per turn, hold dice between rolls</span>
+                    </div>
+                </label>
+
+                <label class="mode-option" data-mode="double-bonus">
+                    <input type="checkbox" id="mode-double-bonus">
+                    <span class="mode-check"></span>
+                    <div class="mode-info">
+                        <span class="mode-name">Double Bonus</span>
+                        <span class="mode-desc">Upper bonus is 100 instead of 50</span>
+                    </div>
+                </label>
+
+                <label class="mode-option" data-mode="single-throw">
+                    <input type="checkbox" id="mode-single-throw">
+                    <span class="mode-check"></span>
+                    <div class="mode-info">
+                        <span class="mode-name">Single Throw</span>
+                        <span class="mode-desc">Only 1 roll per turn, no holding</span>
+                    </div>
+                </label>
+
+                <label class="mode-option" data-mode="unlimited-yatzy">
+                    <input type="checkbox" id="mode-unlimited-yatzy">
+                    <span class="mode-check"></span>
+                    <div class="mode-info">
+                        <span class="mode-name">Unlimited Yatzy</span>
+                        <span class="mode-desc">Each additional Yatzy scores +50 bonus</span>
+                    </div>
+                </label>
+            </div>
+
+            <button id="start-game-btn" class="action-btn roll-btn">Enter the Fog</button>
+        </div>
+    </div>
+
+    <div id="game-container" class="hidden">
         <header id="header">
             <div class="header-info">
                 <span id="streak" class="streak" title="Daily play streak">&#x1F525; 0</span>
@@ -35,6 +83,7 @@
                 </div>
                 <div id="roll-info">
                     <span id="round-display">Round 1 / 15</span>
+                    <span id="rolls-display" class="hidden"> &mdash; Roll 1 / 3</span>
                 </div>
             </div>
 
@@ -79,7 +128,7 @@
                 </div>
                 <div class="score-row bonus-row">
                     <span class="cat-label">Bonus</span>
-                    <span class="cat-preview" id="bonus-target">&ge;63 = 100</span>
+                    <span class="cat-preview" id="bonus-target">&ge;63 = 50</span>
                     <span class="cat-score" id="upper-bonus">0</span>
                 </div>
 
@@ -151,7 +200,10 @@
                 <h2 id="win-title">Trial Complete</h2>
                 <p id="win-flavor">The Entity judges your offering...</p>
                 <p id="win-stats"></p>
-                <button id="play-again-btn" class="modal-btn">Enter the Fog Again</button>
+                <div class="modal-buttons">
+                    <button id="play-again-btn" class="modal-btn">Enter the Fog Again</button>
+                    <button id="change-mode-btn" class="modal-btn secondary">Change Rules</button>
+                </div>
             </div>
         </div>
     </div>

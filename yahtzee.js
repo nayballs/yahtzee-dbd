@@ -5,18 +5,104 @@ class Yatzy {
         this.scores = {};
         this.yatzyCount = 0;
         this.round = 0;
+        this.rollsLeft = 0;
         this.rolled = false;
-        this.totalCategories = 15; // 6 upper + 9 lower
+        this.totalCategories = 15;
         this.categories = [
             'ones', 'twos', 'threes', 'fours', 'fives', 'sixes',
             'one-pair', 'two-pairs', 'three-kind', 'four-kind',
             'small-straight', 'large-straight', 'full-house', 'chance', 'yatzy'
         ];
 
+        // Game mode config (defaults to standard)
+        this.config = {
+            singleThrow: false,
+            doubleBonus: false,
+            unlimitedYatzy: false
+        };
+
         this.loadStats();
+        this.loadModes();
         this.setupEventListeners();
+    }
+
+    // ===== MODE SELECTION =====
+
+    loadModes() {
+        // Restore last-used mode toggles
+        try {
+            const saved = localStorage.getItem('yatzy-dbd-modes');
+            if (saved) {
+                const modes = JSON.parse(saved);
+                document.getElementById('mode-single-throw').checked = !!modes.singleThrow;
+                document.getElementById('mode-double-bonus').checked = !!modes.doubleBonus;
+                document.getElementById('mode-unlimited-yatzy').checked = !!modes.unlimitedYatzy;
+            }
+        } catch { /* ignore */ }
+
+        // Handle Standard vs Single Throw mutual exclusivity
+        const stdCheckbox = document.getElementById('mode-standard');
+        const stCheckbox = document.getElementById('mode-single-throw');
+
+        stdCheckbox.addEventListener('change', () => {
+            if (stdCheckbox.checked) {
+                stCheckbox.checked = false;
+            }
+        });
+        stCheckbox.addEventListener('change', () => {
+            if (stCheckbox.checked) {
+                stdCheckbox.checked = false;
+            }
+            // If unchecking single throw, re-check standard
+            if (!stCheckbox.checked && !stdCheckbox.checked) {
+                stdCheckbox.checked = true;
+            }
+        });
+        // If unchecking standard, check single throw
+        stdCheckbox.addEventListener('change', () => {
+            if (!stdCheckbox.checked && !stCheckbox.checked) {
+                stCheckbox.checked = true;
+            }
+        });
+    }
+
+    saveModes() {
+        try {
+            localStorage.setItem('yatzy-dbd-modes', JSON.stringify(this.config));
+        } catch { /* ignore */ }
+    }
+
+    startFromModeScreen() {
+        // Read checkbox states
+        const singleThrow = document.getElementById('mode-single-throw').checked;
+        const doubleBonus = document.getElementById('mode-double-bonus').checked;
+        const unlimitedYatzy = document.getElementById('mode-unlimited-yatzy').checked;
+
+        this.config = { singleThrow, doubleBonus, unlimitedYatzy };
+        this.saveModes();
+
+        // Update bonus display
+        const bonusAmt = this.config.doubleBonus ? 100 : 50;
+        document.getElementById('bonus-target').innerHTML = `&ge;63 = ${bonusAmt}`;
+
+        // Show/hide rolls display
+        const rollsEl = document.getElementById('rolls-display');
+        rollsEl.classList.toggle('hidden', this.config.singleThrow);
+
+        // Switch screens
+        document.getElementById('mode-screen').classList.add('hidden');
+        document.getElementById('game-container').classList.remove('hidden');
+
         this.newGame();
     }
+
+    showModeScreen() {
+        document.getElementById('game-container').classList.add('hidden');
+        document.getElementById('mode-screen').classList.remove('hidden');
+        document.getElementById('win-modal').classList.add('hidden');
+    }
+
+    // ===== GAME LOGIC =====
 
     newGame() {
         this.dice = [0, 0, 0, 0, 0];
@@ -24,16 +110,31 @@ class Yatzy {
         this.scores = {};
         this.yatzyCount = 0;
         this.round = 0;
+        this.rollsLeft = 0;
         this.rolled = false;
+
+        // Remove any leftover yatzy bonus elements
+        document.querySelectorAll('.yatzy-bonus').forEach(el => el.remove());
+
         this.render();
         this.updateRollButton();
     }
 
     setupEventListeners() {
-        // Dice clicks (hold/unhold) - not used in single throw mode but kept for visual feedback
+        // Start game from mode screen
+        document.getElementById('start-game-btn').addEventListener('click', () => this.startFromModeScreen());
+
+        // Dice clicks (hold/unhold in multi-roll mode)
         document.querySelectorAll('.die').forEach(die => {
             die.addEventListener('click', () => {
-                // No holding in single-throw mode
+                if (this.config.singleThrow) return; // No holding in single-throw
+                if (!this.rolled) return; // Must have rolled first
+                if (this.rollsLeft <= 0) return; // No rolls left means must score
+
+                const idx = parseInt(die.dataset.index);
+                this.held[idx] = !this.held[idx];
+                this.renderDice();
+                this.vibrate(5);
             });
         });
 
@@ -50,34 +151,67 @@ class Yatzy {
             });
         });
 
-        // New game
+        // New game (same mode)
         document.getElementById('new-game-btn').addEventListener('click', () => this.newGame());
 
-        // Play again from modal
+        // Play again from modal (same mode)
         document.getElementById('play-again-btn').addEventListener('click', () => {
             document.getElementById('win-modal').classList.add('hidden');
             this.newGame();
         });
+
+        // Change mode from modal
+        document.getElementById('change-mode-btn').addEventListener('click', () => this.showModeScreen());
     }
 
     roll() {
-        if (this.round >= this.totalCategories) return;
-        if (this.rolled) return; // Single throw - already rolled this turn
+        if (this.round >= this.totalCategories && this.rollsLeft <= 0) return;
 
-        this.rolled = true;
-        this.round++;
+        if (this.config.singleThrow) {
+            // Single throw mode: one roll per round
+            if (this.rolled) return;
+            this.rolled = true;
+            this.round++;
+            this.rollsLeft = 0;
 
-        // Roll all dice (single throw = all dice, no holding)
-        for (let i = 0; i < 5; i++) {
-            this.dice[i] = Math.floor(Math.random() * 6) + 1;
+            // Roll all dice
+            for (let i = 0; i < 5; i++) {
+                this.dice[i] = Math.floor(Math.random() * 6) + 1;
+            }
+        } else {
+            // Standard mode: up to 3 rolls, can hold dice
+            if (this.rollsLeft <= 0 && this.rolled) return; // Used all rolls
+
+            if (!this.rolled) {
+                // First roll of a new round
+                this.round++;
+                this.rollsLeft = 2; // 2 more rolls after this one
+                this.rolled = true;
+                this.held = [false, false, false, false, false];
+
+                // Roll all dice
+                for (let i = 0; i < 5; i++) {
+                    this.dice[i] = Math.floor(Math.random() * 6) + 1;
+                }
+            } else {
+                // Re-roll: only roll unheld dice
+                this.rollsLeft--;
+                for (let i = 0; i < 5; i++) {
+                    if (!this.held[i]) {
+                        this.dice[i] = Math.floor(Math.random() * 6) + 1;
+                    }
+                }
+            }
         }
 
         // Animate
         const dieEls = document.querySelectorAll('.die');
         dieEls.forEach((el, i) => {
-            el.classList.add('rolling');
+            if (!this.held[i] || this.config.singleThrow) {
+                el.classList.add('rolling');
+                setTimeout(() => el.classList.remove('rolling'), 400);
+            }
             el.dataset.value = this.dice[i];
-            setTimeout(() => el.classList.remove('rolling'), 400);
         });
 
         this.vibrate(20);
@@ -89,16 +223,18 @@ class Yatzy {
     scoreCategory(cat) {
         const score = this.calculateScore(cat, this.dice);
 
-        // Unlimited Yatzy bonus
-        if (cat === 'yatzy' && score === 50) {
-            this.yatzyCount++;
-        } else if (cat !== 'yatzy' && this.isYatzy(this.dice) && this.yatzyCount > 0) {
-            // Bonus yatzy: if dice are a yatzy and yatzy already scored, add 50 bonus
-            this.yatzyCount++;
+        // Unlimited Yatzy bonus tracking
+        if (this.config.unlimitedYatzy) {
+            if (cat === 'yatzy' && score === 50) {
+                this.yatzyCount++;
+            } else if (cat !== 'yatzy' && this.isYatzy(this.dice) && this.yatzyCount > 0) {
+                this.yatzyCount++;
+            }
         }
 
         this.scores[cat] = score;
         this.rolled = false;
+        this.rollsLeft = 0;
         this.held = [false, false, false, false, false];
 
         // Flash scored row
@@ -127,7 +263,7 @@ class Yatzy {
     }
 
     calculateScore(cat, dice) {
-        const counts = [0, 0, 0, 0, 0, 0]; // index 0 = count of 1s, etc.
+        const counts = [0, 0, 0, 0, 0, 0];
         dice.forEach(d => counts[d - 1]++);
         const sorted = [...dice].sort((a, b) => a - b);
         const sum = dice.reduce((a, b) => a + b, 0);
@@ -202,12 +338,12 @@ class Yatzy {
     }
 
     getUpperBonus() {
-        return this.getUpperSum() >= 63 ? 100 : 0; // Double bonus
+        const bonusAmt = this.config.doubleBonus ? 100 : 50;
+        return this.getUpperSum() >= 63 ? bonusAmt : 0;
     }
 
     getYatzyBonuses() {
-        // First yatzy scores 50 in the yatzy category
-        // Each additional yatzy = +50 bonus
+        if (!this.config.unlimitedYatzy) return 0;
         return Math.max(0, this.yatzyCount - 1) * 50;
     }
 
@@ -250,12 +386,39 @@ class Yatzy {
         if (gameOver) {
             btn.disabled = true;
             btn.textContent = 'Trial Over';
-        } else if (this.rolled) {
-            btn.disabled = true;
-            btn.textContent = 'Choose a Category';
+        } else if (this.config.singleThrow) {
+            // Single throw mode
+            if (this.rolled) {
+                btn.disabled = true;
+                btn.textContent = 'Choose a Category';
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Roll the Bones';
+            }
         } else {
-            btn.disabled = false;
-            btn.textContent = 'Roll the Bones';
+            // Standard mode (3 rolls)
+            if (this.rolled && this.rollsLeft <= 0) {
+                btn.disabled = true;
+                btn.textContent = 'Choose a Category';
+            } else if (this.rolled) {
+                btn.disabled = false;
+                btn.textContent = `Re-Roll (${this.rollsLeft} left)`;
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Roll the Bones';
+            }
+        }
+
+        // Update rolls display for standard mode
+        if (!this.config.singleThrow) {
+            const rollsEl = document.getElementById('rolls-display');
+            if (this.rolled) {
+                const rollNum = 3 - this.rollsLeft;
+                rollsEl.textContent = ` \u2014 Roll ${rollNum} / 3`;
+                rollsEl.classList.remove('hidden');
+            } else {
+                rollsEl.classList.add('hidden');
+            }
         }
     }
 
@@ -265,6 +428,13 @@ class Yatzy {
             el.dataset.value = this.dice[i];
             el.classList.toggle('held', this.held[i]);
 
+            // Show hold hint in standard mode
+            if (!this.config.singleThrow && this.rolled && this.rollsLeft > 0) {
+                el.classList.add('holdable');
+            } else {
+                el.classList.remove('holdable');
+            }
+
             // Render pips
             el.innerHTML = '';
             if (this.dice[i] === 0) return;
@@ -272,7 +442,6 @@ class Yatzy {
             const grid = document.createElement('div');
             grid.className = 'pip-grid';
 
-            // Pip positions for each die value (3x3 grid positions: 0-8)
             const positions = {
                 1: [4],
                 2: [2, 6],
@@ -315,7 +484,7 @@ class Yatzy {
                     row.classList.add('scored');
                 }
                 // Show yatzy bonus count
-                if (cat === 'yatzy' && this.yatzyCount > 1) {
+                if (cat === 'yatzy' && this.config.unlimitedYatzy && this.yatzyCount > 1) {
                     let bonusEl = row.querySelector('.yatzy-bonus');
                     if (!bonusEl) {
                         bonusEl = document.createElement('span');
@@ -383,8 +552,12 @@ class Yatzy {
         }
 
         const bonusText = [];
-        if (this.getUpperBonus() > 0) bonusText.push('Double Bonus!');
-        if (this.yatzyCount > 1) bonusText.push(`${this.yatzyCount}x Yatzy!`);
+        if (this.getUpperBonus() > 0) {
+            bonusText.push(this.config.doubleBonus ? 'Double Bonus!' : 'Upper Bonus!');
+        }
+        if (this.config.unlimitedYatzy && this.yatzyCount > 1) {
+            bonusText.push(`${this.yatzyCount}x Yatzy!`);
+        }
 
         document.getElementById('win-stats').innerHTML =
             `Score: ${total}` +
@@ -428,7 +601,6 @@ class Yatzy {
             } else if (diffDays > 1) {
                 this.stats.streak = 1;
             }
-            // Same day = no change
         } else {
             this.stats.streak = 1;
         }
