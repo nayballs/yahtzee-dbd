@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Yatzy">
+    <meta name="theme-color" content="#0a0a0c">
+    <title>Yatzy - Dead by Daylight</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <header id="header">
+            <div class="header-info">
+                <span id="streak" class="streak" title="Daily play streak">&#x1F525; 0</span>
+                <span id="high-score" class="high-score" title="Best score">Best: 0</span>
+                <span id="games-played" class="games-played" title="Games completed">Games: 0</span>
+            </div>
+        </header>
+
+        <main id="game-board">
+            <!-- Dice Area -->
+            <div id="dice-area">
+                <div class="dice-tray">
+                    <div class="die" data-index="0" data-value="0"></div>
+                    <div class="die" data-index="1" data-value="0"></div>
+                    <div class="die" data-index="2" data-value="0"></div>
+                    <div class="die" data-index="3" data-value="0"></div>
+                    <div class="die" data-index="4" data-value="0"></div>
+                </div>
+                <div id="roll-info">
+                    <span id="round-display">Round 1 / 15</span>
+                </div>
+            </div>
+
+            <!-- Scorecard -->
+            <div id="scorecard">
+                <!-- Upper Section -->
+                <div class="section-header">Upper Section</div>
+                <div class="score-row" data-category="ones">
+                    <span class="cat-label">Ones</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="twos">
+                    <span class="cat-label">Twos</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="threes">
+                    <span class="cat-label">Threes</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="fours">
+                    <span class="cat-label">Fours</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="fives">
+                    <span class="cat-label">Fives</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="sixes">
+                    <span class="cat-label">Sixes</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row subtotal-row">
+                    <span class="cat-label">Sum</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score" id="upper-sum">0</span>
+                </div>
+                <div class="score-row bonus-row">
+                    <span class="cat-label">Bonus</span>
+                    <span class="cat-preview" id="bonus-target">&ge;63 = 100</span>
+                    <span class="cat-score" id="upper-bonus">0</span>
+                </div>
+
+                <!-- Lower Section -->
+                <div class="section-header">Lower Section</div>
+                <div class="score-row" data-category="one-pair">
+                    <span class="cat-label">One Pair</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="two-pairs">
+                    <span class="cat-label">Two Pairs</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="three-kind">
+                    <span class="cat-label">Three of a Kind</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="four-kind">
+                    <span class="cat-label">Four of a Kind</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="small-straight">
+                    <span class="cat-label">Small Straight</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="large-straight">
+                    <span class="cat-label">Large Straight</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="full-house">
+                    <span class="cat-label">Full House</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="chance">
+                    <span class="cat-label">Chance</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+                <div class="score-row" data-category="yatzy">
+                    <span class="cat-label">Yatzy</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score"></span>
+                </div>
+
+                <div class="score-row total-row">
+                    <span class="cat-label">Total</span>
+                    <span class="cat-preview"></span>
+                    <span class="cat-score" id="total-score">0</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Action Bar -->
+        <footer id="action-bar">
+            <button id="roll-btn" class="action-btn roll-btn">Roll the Bones</button>
+            <button id="new-game-btn" class="action-btn">New Game</button>
+        </footer>
+
+        <!-- Win Modal -->
+        <div id="win-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="win-title">Trial Complete</h2>
+                <p id="win-flavor">The Entity judges your offering...</p>
+                <p id="win-stats"></p>
+                <button id="play-again-btn" class="modal-btn">Enter the Fog Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="yahtzee.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>

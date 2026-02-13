@@ -1,0 +1,450 @@
+class Yatzy {
+    constructor() {
+        this.dice = [0, 0, 0, 0, 0];
+        this.held = [false, false, false, false, false];
+        this.scores = {};
+        this.yatzyCount = 0;
+        this.round = 0;
+        this.rolled = false;
+        this.totalCategories = 15; // 6 upper + 9 lower
+        this.categories = [
+            'ones', 'twos', 'threes', 'fours', 'fives', 'sixes',
+            'one-pair', 'two-pairs', 'three-kind', 'four-kind',
+            'small-straight', 'large-straight', 'full-house', 'chance', 'yatzy'
+        ];
+
+        this.loadStats();
+        this.setupEventListeners();
+        this.newGame();
+    }
+
+    newGame() {
+        this.dice = [0, 0, 0, 0, 0];
+        this.held = [false, false, false, false, false];
+        this.scores = {};
+        this.yatzyCount = 0;
+        this.round = 0;
+        this.rolled = false;
+        this.render();
+        this.updateRollButton();
+    }
+
+    setupEventListeners() {
+        // Dice clicks (hold/unhold) - not used in single throw mode but kept for visual feedback
+        document.querySelectorAll('.die').forEach(die => {
+            die.addEventListener('click', () => {
+                // No holding in single-throw mode
+            });
+        });
+
+        // Roll button
+        document.getElementById('roll-btn').addEventListener('click', () => this.roll());
+
+        // Score row clicks
+        document.querySelectorAll('.score-row[data-category]').forEach(row => {
+            row.addEventListener('click', () => {
+                const cat = row.dataset.category;
+                if (this.rolled && !(cat in this.scores)) {
+                    this.scoreCategory(cat);
+                }
+            });
+        });
+
+        // New game
+        document.getElementById('new-game-btn').addEventListener('click', () => this.newGame());
+
+        // Play again from modal
+        document.getElementById('play-again-btn').addEventListener('click', () => {
+            document.getElementById('win-modal').classList.add('hidden');
+            this.newGame();
+        });
+    }
+
+    roll() {
+        if (this.round >= this.totalCategories) return;
+        if (this.rolled) return; // Single throw - already rolled this turn
+
+        this.rolled = true;
+        this.round++;
+
+        // Roll all dice (single throw = all dice, no holding)
+        for (let i = 0; i < 5; i++) {
+            this.dice[i] = Math.floor(Math.random() * 6) + 1;
+        }
+
+        // Animate
+        const dieEls = document.querySelectorAll('.die');
+        dieEls.forEach((el, i) => {
+            el.classList.add('rolling');
+            el.dataset.value = this.dice[i];
+            setTimeout(() => el.classList.remove('rolling'), 400);
+        });
+
+        this.vibrate(20);
+        this.renderDice();
+        this.showPreviews();
+        this.updateRollButton();
+    }
+
+    scoreCategory(cat) {
+        const score = this.calculateScore(cat, this.dice);
+
+        // Unlimited Yatzy bonus
+        if (cat === 'yatzy' && score === 50) {
+            this.yatzyCount++;
+        } else if (cat !== 'yatzy' && this.isYatzy(this.dice) && this.yatzyCount > 0) {
+            // Bonus yatzy: if dice are a yatzy and yatzy already scored, add 50 bonus
+            this.yatzyCount++;
+        }
+
+        this.scores[cat] = score;
+        this.rolled = false;
+        this.held = [false, false, false, false, false];
+
+        // Flash scored row
+        const row = document.querySelector(`.score-row[data-category="${cat}"]`);
+        if (row) {
+            row.classList.add('score-flash');
+            setTimeout(() => row.classList.remove('score-flash'), 500);
+        }
+
+        // Yatzy celebration
+        if (score === 50 && cat === 'yatzy') {
+            document.getElementById('dice-area').classList.add('yatzy-celebration');
+            this.vibrate([30, 50, 30, 50, 80]);
+            setTimeout(() => document.getElementById('dice-area').classList.remove('yatzy-celebration'), 1000);
+        } else {
+            this.vibrate(10);
+        }
+
+        this.render();
+        this.updateRollButton();
+
+        // Check game over
+        if (Object.keys(this.scores).length >= this.totalCategories) {
+            this.endGame();
+        }
+    }
+
+    calculateScore(cat, dice) {
+        const counts = [0, 0, 0, 0, 0, 0]; // index 0 = count of 1s, etc.
+        dice.forEach(d => counts[d - 1]++);
+        const sorted = [...dice].sort((a, b) => a - b);
+        const sum = dice.reduce((a, b) => a + b, 0);
+
+        switch (cat) {
+            case 'ones': return counts[0] * 1;
+            case 'twos': return counts[1] * 2;
+            case 'threes': return counts[2] * 3;
+            case 'fours': return counts[3] * 4;
+            case 'fives': return counts[4] * 5;
+            case 'sixes': return counts[5] * 6;
+
+            case 'one-pair': {
+                for (let i = 5; i >= 0; i--) {
+                    if (counts[i] >= 2) return (i + 1) * 2;
+                }
+                return 0;
+            }
+            case 'two-pairs': {
+                const pairs = [];
+                for (let i = 5; i >= 0; i--) {
+                    if (counts[i] >= 2) pairs.push(i + 1);
+                }
+                if (pairs.length >= 2) return pairs[0] * 2 + pairs[1] * 2;
+                return 0;
+            }
+            case 'three-kind': {
+                for (let i = 5; i >= 0; i--) {
+                    if (counts[i] >= 3) return (i + 1) * 3;
+                }
+                return 0;
+            }
+            case 'four-kind': {
+                for (let i = 5; i >= 0; i--) {
+                    if (counts[i] >= 4) return (i + 1) * 4;
+                }
+                return 0;
+            }
+            case 'small-straight': {
+                if (sorted.join('') === '12345') return 15;
+                return 0;
+            }
+            case 'large-straight': {
+                if (sorted.join('') === '23456') return 20;
+                return 0;
+            }
+            case 'full-house': {
+                const hasThree = counts.some(c => c === 3);
+                const hasTwo = counts.some(c => c === 2);
+                if (hasThree && hasTwo) return sum;
+                return 0;
+            }
+            case 'chance': return sum;
+            case 'yatzy': {
+                if (counts.some(c => c === 5)) return 50;
+                return 0;
+            }
+            default: return 0;
+        }
+    }
+
+    isYatzy(dice) {
+        return dice.every(d => d === dice[0]);
+    }
+
+    getUpperSum() {
+        let sum = 0;
+        ['ones', 'twos', 'threes', 'fours', 'fives', 'sixes'].forEach(cat => {
+            if (cat in this.scores) sum += this.scores[cat];
+        });
+        return sum;
+    }
+
+    getUpperBonus() {
+        return this.getUpperSum() >= 63 ? 100 : 0; // Double bonus
+    }
+
+    getYatzyBonuses() {
+        // First yatzy scores 50 in the yatzy category
+        // Each additional yatzy = +50 bonus
+        return Math.max(0, this.yatzyCount - 1) * 50;
+    }
+
+    getTotalScore() {
+        let total = 0;
+        for (const cat in this.scores) {
+            total += this.scores[cat];
+        }
+        total += this.getUpperBonus();
+        total += this.getYatzyBonuses();
+        return total;
+    }
+
+    showPreviews() {
+        this.categories.forEach(cat => {
+            const row = document.querySelector(`.score-row[data-category="${cat}"]`);
+            if (!row) return;
+            const preview = row.querySelector('.cat-preview');
+
+            if (cat in this.scores) {
+                preview.textContent = '';
+                return;
+            }
+
+            if (this.rolled) {
+                const score = this.calculateScore(cat, this.dice);
+                preview.textContent = score > 0 ? score : '-';
+                row.classList.add('available');
+            } else {
+                preview.textContent = '';
+                row.classList.remove('available');
+            }
+        });
+    }
+
+    updateRollButton() {
+        const btn = document.getElementById('roll-btn');
+        const gameOver = Object.keys(this.scores).length >= this.totalCategories;
+
+        if (gameOver) {
+            btn.disabled = true;
+            btn.textContent = 'Trial Over';
+        } else if (this.rolled) {
+            btn.disabled = true;
+            btn.textContent = 'Choose a Category';
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Roll the Bones';
+        }
+    }
+
+    renderDice() {
+        const dieEls = document.querySelectorAll('.die');
+        dieEls.forEach((el, i) => {
+            el.dataset.value = this.dice[i];
+            el.classList.toggle('held', this.held[i]);
+
+            // Render pips
+            el.innerHTML = '';
+            if (this.dice[i] === 0) return;
+
+            const grid = document.createElement('div');
+            grid.className = 'pip-grid';
+
+            // Pip positions for each die value (3x3 grid positions: 0-8)
+            const positions = {
+                1: [4],
+                2: [2, 6],
+                3: [2, 4, 6],
+                4: [0, 2, 6, 8],
+                5: [0, 2, 4, 6, 8],
+                6: [0, 2, 3, 5, 6, 8]
+            };
+
+            for (let pos = 0; pos < 9; pos++) {
+                const cell = document.createElement('div');
+                if (positions[this.dice[i]].includes(pos)) {
+                    cell.className = 'pip';
+                }
+                grid.appendChild(cell);
+            }
+
+            el.appendChild(grid);
+        });
+    }
+
+    render() {
+        this.renderDice();
+
+        // Update score rows
+        this.categories.forEach(cat => {
+            const row = document.querySelector(`.score-row[data-category="${cat}"]`);
+            if (!row) return;
+            const scoreEl = row.querySelector('.cat-score');
+            const previewEl = row.querySelector('.cat-preview');
+
+            row.classList.remove('scored', 'zero-scored', 'available');
+
+            if (cat in this.scores) {
+                scoreEl.textContent = this.scores[cat];
+                previewEl.textContent = '';
+                if (this.scores[cat] === 0) {
+                    row.classList.add('zero-scored');
+                } else {
+                    row.classList.add('scored');
+                }
+                // Show yatzy bonus count
+                if (cat === 'yatzy' && this.yatzyCount > 1) {
+                    let bonusEl = row.querySelector('.yatzy-bonus');
+                    if (!bonusEl) {
+                        bonusEl = document.createElement('span');
+                        bonusEl.className = 'yatzy-bonus';
+                        scoreEl.parentNode.insertBefore(bonusEl, scoreEl);
+                    }
+                    bonusEl.textContent = `+${(this.yatzyCount - 1) * 50}`;
+                }
+            } else {
+                scoreEl.textContent = '';
+            }
+        });
+
+        if (!this.rolled) {
+            this.categories.forEach(cat => {
+                const row = document.querySelector(`.score-row[data-category="${cat}"]`);
+                if (row) {
+                    row.querySelector('.cat-preview').textContent = '';
+                    row.classList.remove('available');
+                }
+            });
+        }
+
+        // Upper sum & bonus
+        const upperSum = this.getUpperSum();
+        document.getElementById('upper-sum').textContent = upperSum;
+        const bonus = this.getUpperBonus();
+        document.getElementById('upper-bonus').textContent = bonus;
+        const bonusRow = document.querySelector('.bonus-row');
+        bonusRow.classList.toggle('earned', bonus > 0);
+
+        // Total
+        document.getElementById('total-score').textContent = this.getTotalScore();
+
+        // Round display
+        const scored = Object.keys(this.scores).length;
+        document.getElementById('round-display').textContent =
+            `Round ${Math.min(scored + 1, this.totalCategories)} / ${this.totalCategories}`;
+
+        // Stats display
+        document.getElementById('streak').innerHTML = `&#x1F525; ${this.stats.streak}`;
+        document.getElementById('high-score').textContent = `Best: ${this.stats.highScore}`;
+        document.getElementById('games-played').textContent = `Games: ${this.stats.gamesPlayed}`;
+    }
+
+    endGame() {
+        const total = this.getTotalScore();
+        this.updateStats(total);
+
+        const titleEl = document.getElementById('win-title');
+        const flavorEl = document.getElementById('win-flavor');
+
+        if (total >= 300) {
+            titleEl.textContent = 'Entity Pleased';
+            flavorEl.textContent = 'A worthy sacrifice. The Entity grants you freedom.';
+        } else if (total >= 200) {
+            titleEl.textContent = 'Trial Complete';
+            flavorEl.textContent = 'You survived the trial. For now.';
+        } else if (total >= 100) {
+            titleEl.textContent = 'Sacrificed';
+            flavorEl.textContent = 'The Entity consumes your offering.';
+        } else {
+            titleEl.textContent = 'Entity Displeased';
+            flavorEl.textContent = 'Your bones were not enough.';
+        }
+
+        const bonusText = [];
+        if (this.getUpperBonus() > 0) bonusText.push('Double Bonus!');
+        if (this.yatzyCount > 1) bonusText.push(`${this.yatzyCount}x Yatzy!`);
+
+        document.getElementById('win-stats').innerHTML =
+            `Score: ${total}` +
+            (bonusText.length ? `<br><span style="font-size:14px">${bonusText.join(' ')}</span>` : '');
+
+        setTimeout(() => {
+            document.getElementById('win-modal').classList.remove('hidden');
+        }, 600);
+    }
+
+    // ===== PERSISTENCE =====
+
+    loadStats() {
+        try {
+            const saved = localStorage.getItem('yatzy-dbd-stats');
+            this.stats = saved ? JSON.parse(saved) : {
+                highScore: 0,
+                gamesPlayed: 0,
+                streak: 0,
+                lastPlayDate: null
+            };
+        } catch {
+            this.stats = { highScore: 0, gamesPlayed: 0, streak: 0, lastPlayDate: null };
+        }
+    }
+
+    updateStats(score) {
+        if (score > this.stats.highScore) {
+            this.stats.highScore = score;
+        }
+        this.stats.gamesPlayed++;
+
+        // Streak tracking
+        const today = new Date().toISOString().split('T')[0];
+        if (this.stats.lastPlayDate) {
+            const last = new Date(this.stats.lastPlayDate);
+            const now = new Date(today);
+            const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                this.stats.streak++;
+            } else if (diffDays > 1) {
+                this.stats.streak = 1;
+            }
+            // Same day = no change
+        } else {
+            this.stats.streak = 1;
+        }
+        this.stats.lastPlayDate = today;
+
+        try {
+            localStorage.setItem('yatzy-dbd-stats', JSON.stringify(this.stats));
+        } catch { /* ignore */ }
+    }
+
+    vibrate(pattern) {
+        if (navigator.vibrate) {
+            navigator.vibrate(pattern);
+        }
+    }
+}
+
+// Start
+document.addEventListener('DOMContentLoaded', () => new Yatzy());

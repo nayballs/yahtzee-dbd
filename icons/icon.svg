@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0a0a0c"/>
+  <rect x="96" y="96" width="320" height="320" rx="40" fill="#1c1c22" stroke="#8b0000" stroke-width="8"/>
+  <!-- Skull-like dice: 5-pip pattern with skull center -->
+  <circle cx="176" cy="176" r="28" fill="#d4c4a8"/>
+  <circle cx="336" cy="176" r="28" fill="#d4c4a8"/>
+  <circle cx="176" cy="336" r="28" fill="#d4c4a8"/>
+  <circle cx="336" cy="336" r="28" fill="#d4c4a8"/>
+  <!-- Center skull -->
+  <text x="256" y="275" text-anchor="middle" font-size="80" fill="#cc0000">&#x2620;</text>
+</svg>
