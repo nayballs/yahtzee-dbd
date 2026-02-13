@@ -294,11 +294,12 @@ class Yatzy {
                 return 0;
             }
             case 'small-straight': {
-                if (sorted.join('') === '12345') return 15;
+                const unique = [...new Set(sorted)].join('');
+                if (unique.includes('1234') || unique.includes('2345') || unique.includes('3456')) return 30;
                 return 0;
             }
             case 'large-straight': {
-                if (sorted.join('') === '23456') return 20;
+                if (sorted.join('') === '12345' || sorted.join('') === '23456') return 40;
                 return 0;
             }
             case 'full-house': {
