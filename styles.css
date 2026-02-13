@@ -192,7 +192,7 @@ body::before {
 
 /* ===== HEADER ===== */
 header {
-    padding: 6px 12px;
+    padding: 4px 12px;
     border-bottom: 1px solid rgba(139, 0, 0, 0.3);
     flex-shrink: 0;
 }
@@ -241,11 +241,11 @@ header {
 /* ===== DICE AREA ===== */
 #dice-area {
     flex-shrink: 0;
-    padding: 12px 0 8px;
+    padding: 8px 0 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .dice-tray {
@@ -351,11 +351,11 @@ header {
 }
 
 .section-header {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 2px;
     color: var(--blood-glow);
-    padding: 8px 12px 4px;
+    padding: 6px 12px 3px;
     border-bottom: 1px solid rgba(139, 0, 0, 0.2);
     font-weight: 600;
 }
@@ -363,11 +363,11 @@ header {
 .score-row {
     display: flex;
     align-items: center;
-    padding: 7px 12px;
+    padding: 5px 12px;
     border-bottom: 1px solid rgba(139, 0, 0, 0.08);
     cursor: pointer;
     transition: background 0.15s;
-    min-height: 34px;
+    min-height: 28px;
 }
 
 .score-row:active {
@@ -470,7 +470,7 @@ header {
 
 .action-btn {
     flex: 1;
-    padding: 12px 8px;
+    padding: 10px 8px;
     border: 1px solid rgba(139, 0, 0, 0.4);
     border-radius: 8px;
     background: linear-gradient(180deg, rgba(30, 30, 38, 0.9) 0%, rgba(20, 20, 26, 0.9) 100%);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yatzy-dbd-v8';
+const CACHE_NAME = 'yatzy-dbd-v9';
 const ASSETS = [
     './',
     './index.html',
