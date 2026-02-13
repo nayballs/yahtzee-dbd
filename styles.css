@@ -120,7 +120,7 @@ body::before {
     background: rgba(139, 0, 0, 0.15);
 }
 
-.mode-option input[type="checkbox"] {
+.mode-option input[type="radio"] {
     display: none;
 }
 

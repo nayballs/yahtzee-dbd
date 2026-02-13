@@ -29,57 +29,34 @@ class Yatzy {
     // ===== MODE SELECTION =====
 
     loadModes() {
-        // Restore last-used mode toggles
+        // Restore last-used mode selection
         try {
-            const saved = localStorage.getItem('yatzy-dbd-modes');
+            const saved = localStorage.getItem('yatzy-dbd-mode');
             if (saved) {
-                const modes = JSON.parse(saved);
-                document.getElementById('mode-single-throw').checked = !!modes.singleThrow;
-                document.getElementById('mode-double-bonus').checked = !!modes.doubleBonus;
-                document.getElementById('mode-unlimited-yatzy').checked = !!modes.unlimitedYatzy;
+                const radio = document.querySelector(`input[name="game-mode"][value="${saved}"]`);
+                if (radio) radio.checked = true;
             }
         } catch { /* ignore */ }
-
-        // Handle Standard vs Single Throw mutual exclusivity
-        const stdCheckbox = document.getElementById('mode-standard');
-        const stCheckbox = document.getElementById('mode-single-throw');
-
-        stdCheckbox.addEventListener('change', () => {
-            if (stdCheckbox.checked) {
-                stCheckbox.checked = false;
-            }
-        });
-        stCheckbox.addEventListener('change', () => {
-            if (stCheckbox.checked) {
-                stdCheckbox.checked = false;
-            }
-            // If unchecking single throw, re-check standard
-            if (!stCheckbox.checked && !stdCheckbox.checked) {
-                stdCheckbox.checked = true;
-            }
-        });
-        // If unchecking standard, check single throw
-        stdCheckbox.addEventListener('change', () => {
-            if (!stdCheckbox.checked && !stCheckbox.checked) {
-                stCheckbox.checked = true;
-            }
-        });
     }
 
-    saveModes() {
+    saveModes(mode) {
         try {
-            localStorage.setItem('yatzy-dbd-modes', JSON.stringify(this.config));
+            localStorage.setItem('yatzy-dbd-mode', mode);
         } catch { /* ignore */ }
     }
 
     startFromModeScreen() {
-        // Read checkbox states
-        const singleThrow = document.getElementById('mode-single-throw').checked;
-        const doubleBonus = document.getElementById('mode-double-bonus').checked;
-        const unlimitedYatzy = document.getElementById('mode-unlimited-yatzy').checked;
+        // Read selected radio
+        const selected = document.querySelector('input[name="game-mode"]:checked');
+        const mode = selected ? selected.value : 'standard';
 
-        this.config = { singleThrow, doubleBonus, unlimitedYatzy };
-        this.saveModes();
+        // Map mode to config
+        this.config = {
+            singleThrow: mode === 'single-throw',
+            doubleBonus: mode === 'double-bonus',
+            unlimitedYatzy: mode === 'unlimited-yatzy'
+        };
+        this.saveModes(mode);
 
         // Update bonus display
         const bonusAmt = this.config.doubleBonus ? 100 : 50;
